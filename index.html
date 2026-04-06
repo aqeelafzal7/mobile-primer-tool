@@ -23,7 +23,6 @@
 </head>
 <body class="dna-bg min-h-screen pb-12">
 
-    <!-- Navigation -->
     <nav class="bg-indigo-700 text-white p-4 shadow-lg mb-6">
         <div class="max-w-4xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-2">
@@ -35,7 +34,6 @@
     </nav>
 
     <main class="max-w-4xl mx-auto px-4">
-        <!-- Input Section -->
         <section class="glass-card rounded-2xl p-6 shadow-sm mb-6">
             <label class="block text-sm font-semibold text-slate-700 mb-2 uppercase tracking-wider">DNA Sequence (5' → 3')</label>
             <textarea 
@@ -55,11 +53,9 @@
             </div>
         </section>
 
-        <!-- Results Section (Hidden by default) -->
         <div id="resultsArea" class="hidden space-y-6">
             
             <div id="reportContent" class="space-y-6">
-                <!-- Forward Primer Card -->
                 <div class="glass-card rounded-2xl p-6 shadow-sm border-l-4 border-l-emerald-500">
                     <div class="flex justify-between items-start mb-4">
                         <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -85,7 +81,6 @@
                     </div>
                 </div>
 
-                <!-- Reverse Primer Card -->
                 <div class="glass-card rounded-2xl p-6 shadow-sm border-l-4 border-l-rose-500">
                     <div class="flex justify-between items-start mb-4">
                         <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -112,7 +107,6 @@
                 </div>
             </div>
 
-            <!-- Export Actions -->
             <div class="flex gap-4">
                 <button onclick="downloadPDF()" class="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -121,7 +115,6 @@
             </div>
         </div>
 
-        <!-- Error State -->
         <div id="errorBox" class="hidden mt-4 p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm"></div>
     </main>
 
@@ -240,15 +233,21 @@
 
         function downloadPDF() {
             const element = document.getElementById('reportContent');
+            
+            // BUG FIX: Temporarily remove the glass effect because the PDF engine can't render it
+            element.style.backgroundColor = '#ffffff';
+            const cards = element.querySelectorAll('.glass-card');
+            cards.forEach(card => card.classList.remove('glass-card'));
+
             const opt = {
-                margin:       1,
+                margin:       0.5,
                 filename:     'PCR_Primer_Report.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2 },
                 jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
             };
 
-            // Add a temporary header for the PDF
+            // Add header
             const header = document.createElement('div');
             header.innerHTML = `
                 <h1 style="color: #4338ca; font-size: 24px; font-weight: bold; margin-bottom: 10px;">BioPrime Analysis Report</h1>
@@ -257,10 +256,14 @@
             `;
             element.prepend(header);
 
+            // Generate PDF, then put the glass effect back
             html2pdf().set(opt).from(element).save().then(() => {
                 header.remove();
+                element.style.backgroundColor = '';
+                cards.forEach(card => card.classList.add('glass-card'));
             });
         }
     </script>
 </body>
-</html>
+    </html>
+    
