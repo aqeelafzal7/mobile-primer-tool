@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BioPrime V2.0 | Professional Primer Design</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; touch-action: manipulation; }
@@ -64,7 +63,7 @@
             <button onclick="clearAll()" class="bg-slate-200 text-slate-600 px-6 rounded-xl font-bold">Reset</button>
         </div>
 
-        <div id="resultsArea" class="hidden space-y-4 pb-10">
+        <div id="resultsArea" class="hidden space-y-4 pb-10 mt-6">
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 border-l-8 border-l-emerald-500">
                 <div class="flex justify-between items-center mb-2">
                     <span class="text-xs font-black text-emerald-600 uppercase">Forward Primer</span>
@@ -108,11 +107,6 @@
                     </div>
                 </div>
             </div>
-
-            <button onclick="downloadPDF()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Download PDF Report
-            </button>
         </div>
     </main>
 
@@ -120,8 +114,8 @@
         let sequence = "";
         let isListening = false;
         let recognition = null;
-        let lastResult = null; 
 
+        // --- KEYBOARD INTERCEPTOR ---
         window.addEventListener('keydown', (e) => {
             const key = e.key.toUpperCase();
             if (['A', 'T', 'C', 'G'].includes(key)) {
@@ -129,8 +123,10 @@
             } else if (e.key === 'Backspace') {
                 deleteBase();
             }
-        });
+            e.preventDefault(); // Block all other keys
+        }, true);
 
+        // --- CORE LOGIC ---
         function inputBase(base) {
             sequence += base;
             updateDisplay();
@@ -143,7 +139,6 @@
 
         function clearAll() {
             sequence = "";
-            lastResult = null;
             updateDisplay();
             document.getElementById('resultsArea').classList.add('hidden');
         }
@@ -178,7 +173,7 @@
                 const stats = calculateStats(sub);
                 if (stats.gc >= 40 && stats.gc <= 60 && stats.tm >= 50 && stats.tm <= 65) return stats;
             }
-            return calculateStats(workingSeq.substring(0, 20)); 
+            return calculateStats(workingSeq.substring(0, 20)); // Fallback
         }
 
         function generatePrimers() {
@@ -188,15 +183,12 @@
             }
             const fwd = findPrimer(sequence.substring(0, 30));
             const rev = findPrimer(sequence.substring(sequence.length - 30), true);
-            
-            lastResult = { fwd, rev, original: sequence };
 
+            // Update UI
             updateUI('fwd', fwd);
             updateUI('rev', rev);
             document.getElementById('resultsArea').classList.remove('hidden');
-            setTimeout(() => {
-                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-            }, 100);
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
         function updateUI(prefix, data) {
@@ -206,6 +198,7 @@
             document.getElementById(`${prefix}Tm`).innerText = `${data.tm}°C`;
         }
 
+        // --- VOICE ASSISTANT ---
         function initSpeech() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) return alert("Speech API not supported in this browser.");
@@ -218,19 +211,17 @@
             recognition.onresult = (event) => {
                 const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
                 
+                // Commands
                 if (transcript.includes('generate') || transcript.includes('result')) {
                     generatePrimers();
                     return;
                 }
-                if (transcript.includes('download') || transcript.includes('pdf')) {
-                    downloadPDF();
-                    return;
-                }
 
+                // Dictation Mapping
                 const words = transcript.split(' ');
                 words.forEach(word => {
                     if (['a', 'alpha', 'hay'].includes(word)) inputBase('A');
-                    else if (['t', 'tea', 'tee', 'tango', 'time'].includes(word)) inputBase('T');
+                    else if (['t', 'tea', 'tee', 'tango'].includes(word)) inputBase('T');
                     else if (['c', 'see', 'sea', 'charlie'].includes(word)) inputBase('C');
                     else if (['g', 'gee', 'gui', 'golf'].includes(word)) inputBase('G');
                 });
@@ -246,7 +237,7 @@
             const status = document.getElementById('voiceStatus');
             
             if (isListening) {
-                try { recognition.start(); } catch(e) {}
+                recognition.start();
                 btn.classList.replace('bg-slate-100', 'bg-red-50');
                 btn.classList.add('text-red-600', 'border-red-200');
                 status.classList.remove('hidden');
@@ -258,69 +249,19 @@
             }
         }
 
-        function downloadPDF() {
-            if (!lastResult) {
-                alert("Please generate primers first!");
-                return;
-            }
-
-            const container = document.createElement('div');
-            container.style.position = 'absolute';
-            container.style.top = '0';
-            container.style.left = '0';
-            container.style.width = '800px'; 
-            container.style.backgroundColor = '#ffffff';
-            container.style.zIndex = '-1000'; 
-
-            container.innerHTML = `
-                <div style="font-family: Arial, sans-serif; padding: 40px; color: #000;">
-                    <h1 style="color: #4338ca; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-top: 0;">BioPrime Primer Report</h1>
-                    <p style="font-size: 12px; color: #64748b;">Generated: ${new Date().toLocaleString()}</p>
-                    
-                    <div style="margin-top: 30px;">
-                        <h3 style="color: #059669; font-size: 16px;">FORWARD SENSE PRIMER (5' to 3')</h3>
-                        <div style="background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; border-radius: 4px; font-family: monospace; font-size: 18px; word-break: break-all;">
-                            ${lastResult.fwd.seq}
-                        </div>
-                        <p style="font-size: 14px; margin-top: 10px;"><strong>Length:</strong> ${lastResult.fwd.len} bp &nbsp;|&nbsp; <strong>GC Content:</strong> ${lastResult.fwd.gc}% &nbsp;|&nbsp; <strong>Melting Temp:</strong> ${lastResult.fwd.tm}°C</p>
-                    </div>
-
-                    <div style="margin-top: 40px;">
-                        <h3 style="color: #e11d48; font-size: 16px;">REVERSE ANTISENSE PRIMER (5' to 3')</h3>
-                        <div style="background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; border-radius: 4px; font-family: monospace; font-size: 18px; word-break: break-all;">
-                            ${lastResult.rev.seq}
-                        </div>
-                        <p style="font-size: 14px; margin-top: 10px;"><strong>Length:</strong> ${lastResult.rev.len} bp &nbsp;|&nbsp; <strong>GC Content:</strong> ${lastResult.rev.gc}% &nbsp;|&nbsp; <strong>Melting Temp:</strong> ${lastResult.rev.tm}°C</p>
-                    </div>
-
-                    <div style="margin-top: 50px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
-                        <h4 style="font-size: 12px; color: #64748b; text-transform: uppercase;">Original Template Sequence</h4>
-                        <div style="font-family: monospace; font-size: 12px; word-break: break-all; color: #64748b; margin-top: 10px;">
-                            ${lastResult.original}
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(container);
-
-            const opt = {
-                margin:       0.5,
-                filename:     `Primer_Report_${Date.now()}.pdf`,
-                image:        { type: 'jpeg', quality: 1 },
-                html2canvas:  { scale: 2, windowWidth: 800 },
-                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-            };
-
-            html2pdf().set(opt).from(container).save().then(() => {
-                document.body.removeChild(container);
-            });
-        }
-
         function copyText(id) {
             const text = document.getElementById(id).innerText;
             navigator.clipboard.writeText(text);
-            alert("Sequence copied to clipboard");
+            
+            // Visual feedback
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = 'Copied!';
+            btn.classList.add('text-emerald-500');
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.classList.remove('text-emerald-500');
+            }, 1500);
         }
     </script>
 </body>
