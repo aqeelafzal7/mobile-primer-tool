@@ -231,14 +231,38 @@
             });
         }
 
-        function downloadPDF() {
-            const element = document.getElementById('reportContent');
+                function downloadPDF() {
+            // 1. Gather the data from the app
+            const fwdSeq = document.getElementById('fwdSeq').innerText;
+            const fwdLen = document.getElementById('fwdLen').innerText;
+            const fwdGC = document.getElementById('fwdGC').innerText;
+            const fwdTm = document.getElementById('fwdTm').innerText;
             
-            // BUG FIX: Temporarily remove the glass effect because the PDF engine can't render it
-            element.style.backgroundColor = '#ffffff';
-            const cards = element.querySelectorAll('.glass-card');
-            cards.forEach(card => card.classList.remove('glass-card'));
+            const revSeq = document.getElementById('revSeq').innerText;
+            const revLen = document.getElementById('revLen').innerText;
+            const revGC = document.getElementById('revGC').innerText;
+            const revTm = document.getElementById('revTm').innerText;
 
+            // 2. Create a clean, hidden printable template
+            const printContent = document.createElement('div');
+            printContent.innerHTML = `
+                <div style="font-family: Helvetica, Arial, sans-serif; padding: 20px; color: #333;">
+                    <h1 style="color: #4338ca; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">BioPrime Analysis Report</h1>
+                    <p style="color: #64748b; font-size: 12px; margin-bottom: 30px;">Generated on: ${new Date().toLocaleString()}</p>
+                    
+                    <h2 style="color: #059669; font-size: 18px;">FORWARD SENSE PRIMER</h2>
+                    <p style="font-family: monospace; font-size: 16px; background: #f8fafc; padding: 10px; border: 1px solid #e2e8f0; word-break: break-all;">${fwdSeq}</p>
+                    <p style="font-size: 14px;"><strong>Length:</strong> ${fwdLen} &nbsp;|&nbsp; <strong>GC Content:</strong> ${fwdGC} &nbsp;|&nbsp; <strong>Melting Temp (Tm):</strong> ${fwdTm}</p>
+                    
+                    <div style="height: 30px;"></div>
+
+                    <h2 style="color: #e11d48; font-size: 18px;">REVERSE ANTISENSE PRIMER</h2>
+                    <p style="font-family: monospace; font-size: 16px; background: #f8fafc; padding: 10px; border: 1px solid #e2e8f0; word-break: break-all;">${revSeq}</p>
+                    <p style="font-size: 14px;"><strong>Length:</strong> ${revLen} &nbsp;|&nbsp; <strong>GC Content:</strong> ${revGC} &nbsp;|&nbsp; <strong>Melting Temp (Tm):</strong> ${revTm}</p>
+                </div>
+            `;
+
+            // 3. Generate the PDF from the clean template
             const opt = {
                 margin:       0.5,
                 filename:     'PCR_Primer_Report.pdf',
@@ -247,22 +271,9 @@
                 jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
             };
 
-            // Add header
-            const header = document.createElement('div');
-            header.innerHTML = `
-                <h1 style="color: #4338ca; font-size: 24px; font-weight: bold; margin-bottom: 10px;">BioPrime Analysis Report</h1>
-                <p style="color: #64748b; font-size: 12px; margin-bottom: 20px;">Generated on: ${new Date().toLocaleString()}</p>
-                <hr style="margin-bottom: 20px; border: 0; border-top: 1px solid #e2e8f0;">
-            `;
-            element.prepend(header);
-
-            // Generate PDF, then put the glass effect back
-            html2pdf().set(opt).from(element).save().then(() => {
-                header.remove();
-                element.style.backgroundColor = '';
-                cards.forEach(card => card.classList.add('glass-card'));
-            });
+            html2pdf().set(opt).from(printContent).save();
         }
+
     </script>
 </body>
     </html>
