@@ -269,61 +269,65 @@
         }
 
         // --- PDF ENGINE (RAW TEMPLATE STRING) ---
-        function downloadPDF() {
-            if (!lastResult) return;
+                function downloadPDF() {
+            if (!lastResult) {
+                alert("Please generate primers first!");
+                return;
+            }
 
-            const pdfTemplate = `
-                <div style="font-family: sans-serif; padding: 40px; color: #1e293b;">
-                    <h1 style="color: #4338ca; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">BioPrime Primer Report</h1>
+            // 1. Create a physical container, but hide it BEHIND the app so the browser is forced to render it
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.top = '0';
+            container.style.left = '0';
+            container.style.width = '800px'; // FORCE desktop width so it doesn't get squished
+            container.style.backgroundColor = '#ffffff';
+            container.style.zIndex = '-1000'; // Hides it behind your dark background
+
+            container.innerHTML = `
+                <div style="font-family: Arial, sans-serif; padding: 40px; color: #000;">
+                    <h1 style="color: #4338ca; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-top: 0;">BioPrime Primer Report</h1>
                     <p style="font-size: 12px; color: #64748b;">Generated: ${new Date().toLocaleString()}</p>
                     
                     <div style="margin-top: 30px;">
-                        <h3 style="text-transform: uppercase; font-size: 14px; color: #059669;">Forward Primer (5' to 3')</h3>
-                        <p style="font-family: monospace; font-size: 18px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">${lastResult.fwd.seq}</p>
-                        <table style="width: 100%; text-align: left; font-size: 14px;">
-                            <tr>
-                                <td><strong>Length:</strong> ${lastResult.fwd.len} bp</td>
-                                <td><strong>GC Content:</strong> ${lastResult.fwd.gc}%</td>
-                                <td><strong>Melting Temp:</strong> ${lastResult.fwd.tm}°C</td>
-                            </tr>
-                        </table>
+                        <h3 style="color: #059669; font-size: 16px;">FORWARD SENSE PRIMER (5' to 3')</h3>
+                        <div style="background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; border-radius: 4px; font-family: monospace; font-size: 18px; word-break: break-all;">
+                            ${lastResult.fwd.seq}
+                        </div>
+                        <p style="font-size: 14px; margin-top: 10px;"><strong>Length:</strong> ${lastResult.fwd.len} bp &nbsp;|&nbsp; <strong>GC Content:</strong> ${lastResult.fwd.gc}% &nbsp;|&nbsp; <strong>Melting Temp:</strong> ${lastResult.fwd.tm}°C</p>
                     </div>
 
                     <div style="margin-top: 40px;">
-                        <h3 style="text-transform: uppercase; font-size: 14px; color: #e11d48;">Reverse Primer (5' to 3')</h3>
-                        <p style="font-family: monospace; font-size: 18px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">${lastResult.rev.seq}</p>
-                        <table style="width: 100%; text-align: left; font-size: 14px;">
-                            <tr>
-                                <td><strong>Length:</strong> ${lastResult.rev.len} bp</td>
-                                <td><strong>GC Content:</strong> ${lastResult.rev.gc}%</td>
-                                <td><strong>Melting Temp:</strong> ${lastResult.rev.tm}°C</td>
-                            </tr>
-                        </table>
+                        <h3 style="color: #e11d48; font-size: 16px;">REVERSE ANTISENSE PRIMER (5' to 3')</h3>
+                        <div style="background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; border-radius: 4px; font-family: monospace; font-size: 18px; word-break: break-all;">
+                            ${lastResult.rev.seq}
+                        </div>
+                        <p style="font-size: 14px; margin-top: 10px;"><strong>Length:</strong> ${lastResult.rev.len} bp &nbsp;|&nbsp; <strong>GC Content:</strong> ${lastResult.rev.gc}% &nbsp;|&nbsp; <strong>Melting Temp:</strong> ${lastResult.rev.tm}°C</p>
                     </div>
 
                     <div style="margin-top: 50px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
                         <h4 style="font-size: 12px; color: #64748b; text-transform: uppercase;">Original Template Sequence</h4>
-                        <p style="font-family: monospace; font-size: 10px; word-break: break-all; color: #94a3b8;">${lastResult.original}</p>
+                        <div style="font-family: monospace; font-size: 12px; word-break: break-all; color: #64748b; margin-top: 10px;">
+                            ${lastResult.original}
+                        </div>
                     </div>
                 </div>
             `;
 
+            // MUST append to body so the phone calculates the height properly
+            document.body.appendChild(container);
+
+            // 2. Tell the PDF engine to use a wide window
             const opt = {
-                margin: 0,
-                filename: `Primer_Report_${Date.now()}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+                margin:       0.5,
+                filename:     `Primer_Report_${Date.now()}.pdf`,
+                image:        { type: 'jpeg', quality: 1 },
+                html2canvas:  { scale: 2, windowWidth: 800 }, // This is the magic fix for mobile
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
             };
 
-            html2pdf().from(pdfTemplate).set(opt).save();
-        }
-
-        function copyText(id) {
-            const text = document.getElementById(id).innerText;
-            navigator.clipboard.writeText(text);
-            alert("Sequence copied to clipboard");
-        }
+            // 3. Generate and instantly clean up
+            html2pdf().set(opt).from(container).save().
     </script>
 </body>
 </html>
