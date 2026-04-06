@@ -230,7 +230,7 @@
             });
         }
 
-                function downloadPDF() {
+        function downloadPDF() {
             // 1. Gather the data from the app
             const fwdSeq = document.getElementById('fwdSeq').innerText;
             const fwdLen = document.getElementById('fwdLen').innerText;
@@ -268,12 +268,6 @@
             };
 
             html2pdf().set(opt).from(htmlString).save();
-        }
-
-            html2pdf().set(opt).from(printContent).save().then(() => {
-                // 4. Clean up by deleting the hidden template after the download finishes
-                document.body.removeChild(printContent);
-            });
         }
     </script>
 </body>
