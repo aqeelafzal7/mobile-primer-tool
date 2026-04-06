@@ -63,7 +63,7 @@
             <button onclick="clearAll()" class="bg-slate-200 text-slate-600 px-6 rounded-xl font-bold">Reset</button>
         </div>
 
-        <div id="resultsArea" class="hidden space-y-4 pb-10 mt-6">
+        <div id="resultsArea" class="hidden space-y-4 pb-6 mt-6">
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 border-l-8 border-l-emerald-500">
                 <div class="flex justify-between items-center mb-2">
                     <span class="text-xs font-black text-emerald-600 uppercase">Forward Primer</span>
@@ -110,6 +110,10 @@
         </div>
     </main>
 
+    <footer class="mt-auto py-6 text-center text-[10px] text-slate-400 font-bold tracking-widest uppercase bg-slate-100 border-t border-slate-200">
+        Developed by M Aqeel Afzal. &copy; 2026 All rights reserved.
+    </footer>
+
     <script>
         let sequence = "";
         let isListening = false;
@@ -123,7 +127,7 @@
             } else if (e.key === 'Backspace') {
                 deleteBase();
             }
-            e.preventDefault(); // Block all other keys
+            e.preventDefault(); 
         }, true);
 
         // --- CORE LOGIC ---
@@ -173,7 +177,7 @@
                 const stats = calculateStats(sub);
                 if (stats.gc >= 40 && stats.gc <= 60 && stats.tm >= 50 && stats.tm <= 65) return stats;
             }
-            return calculateStats(workingSeq.substring(0, 20)); // Fallback
+            return calculateStats(workingSeq.substring(0, 20)); 
         }
 
         function generatePrimers() {
@@ -184,7 +188,6 @@
             const fwd = findPrimer(sequence.substring(0, 30));
             const rev = findPrimer(sequence.substring(sequence.length - 30), true);
 
-            // Update UI
             updateUI('fwd', fwd);
             updateUI('rev', rev);
             document.getElementById('resultsArea').classList.remove('hidden');
@@ -211,13 +214,11 @@
             recognition.onresult = (event) => {
                 const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
                 
-                // Commands
                 if (transcript.includes('generate') || transcript.includes('result')) {
                     generatePrimers();
                     return;
                 }
 
-                // Dictation Mapping
                 const words = transcript.split(' ');
                 words.forEach(word => {
                     if (['a', 'alpha', 'hay'].includes(word)) inputBase('A');
@@ -237,7 +238,7 @@
             const status = document.getElementById('voiceStatus');
             
             if (isListening) {
-                recognition.start();
+                try { recognition.start(); } catch(e) {}
                 btn.classList.replace('bg-slate-100', 'bg-red-50');
                 btn.classList.add('text-red-600', 'border-red-200');
                 status.classList.remove('hidden');
@@ -253,7 +254,6 @@
             const text = document.getElementById(id).innerText;
             navigator.clipboard.writeText(text);
             
-            // Visual feedback
             const btn = event.target;
             const originalText = btn.innerText;
             btn.innerText = 'Copied!';
