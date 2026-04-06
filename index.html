@@ -23,7 +23,6 @@
 </head>
 <body class="bg-slate-50 min-h-screen flex flex-col">
 
-    <!-- Header -->
     <header class="bg-slate-900 text-white p-4 shadow-xl">
         <div class="max-w-md mx-auto flex justify-between items-center">
             <div>
@@ -39,7 +38,6 @@
 
     <main class="flex-1 max-w-md mx-auto w-full p-4 space-y-4">
         
-        <!-- Sequence Monitor -->
         <div class="bg-black rounded-xl p-4 shadow-inner border-4 border-slate-800">
             <div class="flex justify-between text-[10px] text-emerald-500 mb-2 font-bold uppercase tracking-widest">
                 <span>Sequence Monitor</span>
@@ -48,7 +46,6 @@
             <div id="sequenceDisplay" class="h-24 overflow-y-auto break-all mono text-xl text-emerald-400 leading-tight tracking-widest"></div>
         </div>
 
-        <!-- Custom Keypad -->
         <div class="grid grid-cols-4 gap-3">
             <button onclick="inputBase('A')" class="key-shadow bg-white border-2 border-slate-200 rounded-xl py-6 text-2xl font-black text-slate-700 hover:bg-slate-50">A</button>
             <button onclick="inputBase('T')" class="key-shadow bg-white border-2 border-slate-200 rounded-xl py-6 text-2xl font-black text-slate-700 hover:bg-slate-50">T</button>
@@ -62,13 +59,11 @@
             <button onclick="deleteBase()" class="col-span-2 key-shadow bg-rose-50 border-2 border-rose-200 rounded-xl py-4 font-bold text-rose-600 uppercase tracking-widest">Delete</button>
         </div>
 
-        <!-- Action Buttons -->
         <div class="flex gap-3">
             <button onclick="generatePrimers()" class="flex-1 bg-indigo-600 text-white font-black py-4 rounded-xl shadow-lg shadow-indigo-200 active:scale-95 transition-transform uppercase tracking-wider">Generate Result</button>
             <button onclick="clearAll()" class="bg-slate-200 text-slate-600 px-6 rounded-xl font-bold">Reset</button>
         </div>
 
-        <!-- Results (V1.0 Style) -->
         <div id="resultsArea" class="hidden space-y-4 pb-10">
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 border-l-8 border-l-emerald-500">
                 <div class="flex justify-between items-center mb-2">
@@ -125,9 +120,8 @@
         let sequence = "";
         let isListening = false;
         let recognition = null;
-        let lastResult = null; // Store results for PDF
+        let lastResult = null; 
 
-        // --- KEYBOARD INTERCEPTOR ---
         window.addEventListener('keydown', (e) => {
             const key = e.key.toUpperCase();
             if (['A', 'T', 'C', 'G'].includes(key)) {
@@ -135,10 +129,8 @@
             } else if (e.key === 'Backspace') {
                 deleteBase();
             }
-            e.preventDefault(); // Block all other keys
-        }, true);
+        });
 
-        // --- CORE LOGIC ---
         function inputBase(base) {
             sequence += base;
             updateDisplay();
@@ -186,7 +178,7 @@
                 const stats = calculateStats(sub);
                 if (stats.gc >= 40 && stats.gc <= 60 && stats.tm >= 50 && stats.tm <= 65) return stats;
             }
-            return calculateStats(workingSeq.substring(0, 20)); // Fallback
+            return calculateStats(workingSeq.substring(0, 20)); 
         }
 
         function generatePrimers() {
@@ -199,11 +191,12 @@
             
             lastResult = { fwd, rev, original: sequence };
 
-            // Update UI
             updateUI('fwd', fwd);
             updateUI('rev', rev);
             document.getElementById('resultsArea').classList.remove('hidden');
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            setTimeout(() => {
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            }, 100);
         }
 
         function updateUI(prefix, data) {
@@ -213,7 +206,6 @@
             document.getElementById(`${prefix}Tm`).innerText = `${data.tm}°C`;
         }
 
-        // --- VOICE ASSISTANT ---
         function initSpeech() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) return alert("Speech API not supported in this browser.");
@@ -226,7 +218,6 @@
             recognition.onresult = (event) => {
                 const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
                 
-                // Commands
                 if (transcript.includes('generate') || transcript.includes('result')) {
                     generatePrimers();
                     return;
@@ -236,11 +227,10 @@
                     return;
                 }
 
-                // Dictation Mapping
                 const words = transcript.split(' ');
                 words.forEach(word => {
                     if (['a', 'alpha', 'hay'].includes(word)) inputBase('A');
-                    else if (['t', 'tea', 'tee', 'tango'].includes(word)) inputBase('T');
+                    else if (['t', 'tea', 'tee', 'tango', 'time'].includes(word)) inputBase('T');
                     else if (['c', 'see', 'sea', 'charlie'].includes(word)) inputBase('C');
                     else if (['g', 'gee', 'gui', 'golf'].includes(word)) inputBase('G');
                 });
@@ -256,7 +246,7 @@
             const status = document.getElementById('voiceStatus');
             
             if (isListening) {
-                recognition.start();
+                try { recognition.start(); } catch(e) {}
                 btn.classList.replace('bg-slate-100', 'bg-red-50');
                 btn.classList.add('text-red-600', 'border-red-200');
                 status.classList.remove('hidden');
@@ -268,21 +258,19 @@
             }
         }
 
-        // --- PDF ENGINE (RAW TEMPLATE STRING) ---
-                function downloadPDF() {
+        function downloadPDF() {
             if (!lastResult) {
                 alert("Please generate primers first!");
                 return;
             }
 
-            // 1. Create a physical container, but hide it BEHIND the app so the browser is forced to render it
             const container = document.createElement('div');
             container.style.position = 'absolute';
             container.style.top = '0';
             container.style.left = '0';
-            container.style.width = '800px'; // FORCE desktop width so it doesn't get squished
+            container.style.width = '800px'; 
             container.style.backgroundColor = '#ffffff';
-            container.style.zIndex = '-1000'; // Hides it behind your dark background
+            container.style.zIndex = '-1000'; 
 
             container.innerHTML = `
                 <div style="font-family: Arial, sans-serif; padding: 40px; color: #000;">
@@ -314,20 +302,26 @@
                 </div>
             `;
 
-            // MUST append to body so the phone calculates the height properly
             document.body.appendChild(container);
 
-            // 2. Tell the PDF engine to use a wide window
             const opt = {
                 margin:       0.5,
                 filename:     `Primer_Report_${Date.now()}.pdf`,
                 image:        { type: 'jpeg', quality: 1 },
-                html2canvas:  { scale: 2, windowWidth: 800 }, // This is the magic fix for mobile
+                html2canvas:  { scale: 2, windowWidth: 800 },
                 jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
             };
 
-            // 3. Generate and instantly clean up
-            html2pdf().set(opt).from(container).save().
+            html2pdf().set(opt).from(container).save().then(() => {
+                document.body.removeChild(container);
+            });
+        }
+
+        function copyText(id) {
+            const text = document.getElementById(id).innerText;
+            navigator.clipboard.writeText(text);
+            alert("Sequence copied to clipboard");
+        }
     </script>
 </body>
 </html>
