@@ -230,7 +230,7 @@
             });
         }
 
-        function downloadPDF() {
+                function downloadPDF() {
             // 1. Gather the data from the app
             const fwdSeq = document.getElementById('fwdSeq').innerText;
             const fwdLen = document.getElementById('fwdLen').innerText;
@@ -242,42 +242,33 @@
             const revGC = document.getElementById('revGC').innerText;
             const revTm = document.getElementById('revTm').innerText;
 
-            // 2. Create a clean, printable template and attach it OFF-SCREEN
-            const printContent = document.createElement('div');
-            printContent.style.position = 'absolute';
-            printContent.style.left = '-9999px'; // Hides it off the left side of the screen
-            printContent.style.top = '0';
-            printContent.style.width = '800px'; // Gives the PDF a nice wide format
-            printContent.style.backgroundColor = '#ffffff';
-
-            printContent.innerHTML = `
-                <div style="font-family: Helvetica, Arial, sans-serif; padding: 40px; color: #333; background: white;">
-                    <h1 style="color: #4338ca; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">BioPrime Analysis Report</h1>
+            // 2. Create a raw HTML string (bypassing the phone's screen completely)
+            const htmlString = `
+                <div style="font-family: Helvetica, Arial, sans-serif; padding: 40px; color: #333; background-color: #ffffff;">
+                    <h1 style="color: #4338ca; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-top: 0;">BioPrime Analysis Report</h1>
                     <p style="color: #64748b; font-size: 12px; margin-bottom: 30px;">Generated on: ${new Date().toLocaleString()}</p>
                     
                     <h2 style="color: #059669; font-size: 18px;">FORWARD SENSE PRIMER</h2>
                     <p style="font-family: monospace; font-size: 16px; background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; word-break: break-all;">${fwdSeq}</p>
-                    <p style="font-size: 14px;"><strong>Length:</strong> ${fwdLen} &nbsp;|&nbsp; <strong>GC Content:</strong> ${fwdGC} &nbsp;|&nbsp; <strong>Melting Temp (Tm):</strong> ${fwdTm}</p>
-                    
-                    <div style="height: 30px;"></div>
+                    <p style="font-size: 14px; margin-bottom: 30px;"><strong>Length:</strong> ${fwdLen} &nbsp;|&nbsp; <strong>GC Content:</strong> ${fwdGC} &nbsp;|&nbsp; <strong>Tm:</strong> ${fwdTm}</p>
 
                     <h2 style="color: #e11d48; font-size: 18px;">REVERSE ANTISENSE PRIMER</h2>
                     <p style="font-family: monospace; font-size: 16px; background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; word-break: break-all;">${revSeq}</p>
-                    <p style="font-size: 14px;"><strong>Length:</strong> ${revLen} &nbsp;|&nbsp; <strong>GC Content:</strong> ${revGC} &nbsp;|&nbsp; <strong>Melting Temp (Tm):</strong> ${revTm}</p>
+                    <p style="font-size: 14px;"><strong>Length:</strong> ${revLen} &nbsp;|&nbsp; <strong>GC Content:</strong> ${revGC} &nbsp;|&nbsp; <strong>Tm:</strong> ${revTm}</p>
                 </div>
             `;
 
-            // MUST append to the document body so the PDF engine can "see" it
-            document.body.appendChild(printContent);
-
-            // 3. Generate the PDF
+            // 3. Generate the PDF directly from the string
             const opt = {
                 margin:       0.5,
                 filename:     'PCR_Primer_Report.pdf',
-                image:        { type: 'jpeg', quality: 0.98 },
+                image:        { type: 'jpeg', quality: 1 },
                 html2canvas:  { scale: 2 },
                 jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
             };
+
+            html2pdf().set(opt).from(htmlString).save();
+        }
 
             html2pdf().set(opt).from(printContent).save().then(() => {
                 // 4. Clean up by deleting the hidden template after the download finishes
