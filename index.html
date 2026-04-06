@@ -192,7 +192,6 @@
             const fwd = findBestPrimer(seq, false);
             
             // Logic for Reverse Primer (End of sequence)
-            // We take the end of the original sequence to find the reverse complement
             const endPart = seq.substring(seq.length - 30);
             const rev = findBestPrimer(endPart, true);
 
@@ -231,7 +230,7 @@
             });
         }
 
-                        function downloadPDF() {
+        function downloadPDF() {
             // 1. Gather the data from the app
             const fwdSeq = document.getElementById('fwdSeq').innerText;
             const fwdLen = document.getElementById('fwdLen').innerText;
@@ -262,9 +261,29 @@
                     
                     <div style="height: 30px;"></div>
 
-                    <h2 style="color: #
+                    <h2 style="color: #e11d48; font-size: 18px;">REVERSE ANTISENSE PRIMER</h2>
+                    <p style="font-family: monospace; font-size: 16px; background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; word-break: break-all;">${revSeq}</p>
+                    <p style="font-size: 14px;"><strong>Length:</strong> ${revLen} &nbsp;|&nbsp; <strong>GC Content:</strong> ${revGC} &nbsp;|&nbsp; <strong>Melting Temp (Tm):</strong> ${revTm}</p>
+                </div>
+            `;
 
+            // MUST append to the document body so the PDF engine can "see" it
+            document.body.appendChild(printContent);
+
+            // 3. Generate the PDF
+            const opt = {
+                margin:       0.5,
+                filename:     'PCR_Primer_Report.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(printContent).save().then(() => {
+                // 4. Clean up by deleting the hidden template after the download finishes
+                document.body.removeChild(printContent);
+            });
+        }
     </script>
 </body>
-    </html>
-    
+</html>
