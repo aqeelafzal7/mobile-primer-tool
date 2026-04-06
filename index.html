@@ -2,143 +2,165 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BioPrime | PCR Primer Designer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BioPrime V2.0 | Professional Primer Design</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(226, 232, 240, 0.8);
+        body { font-family: 'Inter', sans-serif; touch-action: manipulation; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .key-shadow { box-shadow: 0 4px 0 0 #cbd5e1; }
+        .key-shadow:active { box-shadow: 0 0px 0 0 #cbd5e1; transform: translateY(4px); }
+        .pulse-red { animation: pulse 1.5s infinite; }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
-        .dna-bg {
-            background-color: #f8fafc;
-            background-image: radial-gradient(#e2e8f0 0.5px, transparent 0.5px);
-            background-size: 24px 24px;
-        }
+        #sequenceDisplay::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="dna-bg min-h-screen pb-12">
+<body class="bg-slate-50 min-h-screen flex flex-col">
 
-    <nav class="bg-indigo-700 text-white p-4 shadow-lg mb-6">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg>
-                <h1 class="text-xl font-bold tracking-tight">BioPrime <span class="font-light text-indigo-200 text-sm">v1.0</span></h1>
+    <!-- Header -->
+    <header class="bg-slate-900 text-white p-4 shadow-xl">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-extrabold tracking-tighter text-indigo-400">BIOPRIME <span class="text-white">V2.0</span></h1>
+                <p class="text-[10px] uppercase tracking-widest text-slate-400">Bioinformatics Workstation</p>
             </div>
-            <div class="text-xs bg-indigo-600 px-2 py-1 rounded border border-indigo-400">Expert Mode</div>
+            <div id="voiceStatus" class="hidden flex items-center gap-2 bg-red-500/20 px-3 py-1 rounded-full border border-red-500/50">
+                <div class="w-2 h-2 bg-red-500 rounded-full pulse-red"></div>
+                <span class="text-[10px] font-bold text-red-500 uppercase">Listening</span>
+            </div>
         </div>
-    </nav>
+    </header>
 
-    <main class="max-w-4xl mx-auto px-4">
-        <section class="glass-card rounded-2xl p-6 shadow-sm mb-6">
-            <label class="block text-sm font-semibold text-slate-700 mb-2 uppercase tracking-wider">DNA Sequence (5' → 3')</label>
-            <textarea 
-                id="dnaInput" 
-                class="w-full h-40 p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono text-sm bg-slate-50 transition-all"
-                placeholder="Paste sequence here (e.g., ATGC...)"
-            ></textarea>
-            
-            <div class="flex flex-wrap gap-3 mt-4">
-                <button onclick="generatePrimers()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl transition-all transform active:scale-95 flex items-center justify-center gap-2 shadow-md">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                    Generate Primers
-                </button>
-                <button onclick="clearInput()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-3 px-6 rounded-xl transition-all">
-                    Clear
-                </button>
+    <main class="flex-1 max-w-md mx-auto w-full p-4 space-y-4">
+        
+        <!-- Sequence Monitor -->
+        <div class="bg-black rounded-xl p-4 shadow-inner border-4 border-slate-800">
+            <div class="flex justify-between text-[10px] text-emerald-500 mb-2 font-bold uppercase tracking-widest">
+                <span>Sequence Monitor</span>
+                <span id="baseCount">0 BP</span>
             </div>
-        </section>
+            <div id="sequenceDisplay" class="h-24 overflow-y-auto break-all mono text-xl text-emerald-400 leading-tight tracking-widest"></div>
+        </div>
 
-        <div id="resultsArea" class="hidden space-y-6">
+        <!-- Custom Keypad -->
+        <div class="grid grid-cols-4 gap-3">
+            <button onclick="inputBase('A')" class="key-shadow bg-white border-2 border-slate-200 rounded-xl py-6 text-2xl font-black text-slate-700 hover:bg-slate-50">A</button>
+            <button onclick="inputBase('T')" class="key-shadow bg-white border-2 border-slate-200 rounded-xl py-6 text-2xl font-black text-slate-700 hover:bg-slate-50">T</button>
+            <button onclick="inputBase('C')" class="key-shadow bg-white border-2 border-slate-200 rounded-xl py-6 text-2xl font-black text-slate-700 hover:bg-slate-50">C</button>
+            <button onclick="inputBase('G')" class="key-shadow bg-white border-2 border-slate-200 rounded-xl py-6 text-2xl font-black text-slate-700 hover:bg-slate-50">G</button>
             
-            <div id="reportContent" class="space-y-6">
-                <div class="glass-card rounded-2xl p-6 shadow-sm border-l-4 border-l-emerald-500">
-                    <div class="flex justify-between items-start mb-4">
-                        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs">FORWARD</span>
-                            Sense Primer (5'→3')
-                        </h3>
-                        <button onclick="copyText('fwdSeq')" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">Copy</button>
-                    </div>
-                    <p id="fwdSeq" class="font-mono text-xl break-all text-indigo-900 mb-4 tracking-widest"></p>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div class="bg-slate-50 p-3 rounded-lg">
-                            <p class="text-xs text-slate-500 uppercase">Length</p>
-                            <p id="fwdLen" class="font-bold text-slate-800"></p>
-                        </div>
-                        <div class="bg-slate-50 p-3 rounded-lg">
-                            <p class="text-xs text-slate-500 uppercase">GC %</p>
-                            <p id="fwdGC" class="font-bold text-slate-800"></p>
-                        </div>
-                        <div class="bg-slate-50 p-3 rounded-lg">
-                            <p class="text-xs text-slate-500 uppercase">Tm (°C)</p>
-                            <p id="fwdTm" class="font-bold text-slate-800"></p>
-                        </div>
-                    </div>
-                </div>
+            <button onclick="toggleVoice()" id="micBtn" class="col-span-2 key-shadow bg-slate-100 border-2 border-slate-200 rounded-xl py-4 flex items-center justify-center gap-2 font-bold text-slate-600">
+                <svg id="micIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                Voice Assistant
+            </button>
+            <button onclick="deleteBase()" class="col-span-2 key-shadow bg-rose-50 border-2 border-rose-200 rounded-xl py-4 font-bold text-rose-600 uppercase tracking-widest">Delete</button>
+        </div>
 
-                <div class="glass-card rounded-2xl p-6 shadow-sm border-l-4 border-l-rose-500">
-                    <div class="flex justify-between items-start mb-4">
-                        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <span class="bg-rose-100 text-rose-700 px-2 py-1 rounded text-xs">REVERSE</span>
-                            Antisense Primer (5'→3')
-                        </h3>
-                        <button onclick="copyText('revSeq')" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">Copy</button>
+        <!-- Action Buttons -->
+        <div class="flex gap-3">
+            <button onclick="generatePrimers()" class="flex-1 bg-indigo-600 text-white font-black py-4 rounded-xl shadow-lg shadow-indigo-200 active:scale-95 transition-transform uppercase tracking-wider">Generate Result</button>
+            <button onclick="clearAll()" class="bg-slate-200 text-slate-600 px-6 rounded-xl font-bold">Reset</button>
+        </div>
+
+        <!-- Results (V1.0 Style) -->
+        <div id="resultsArea" class="hidden space-y-4 pb-10">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 border-l-8 border-l-emerald-500">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-black text-emerald-600 uppercase">Forward Primer</span>
+                    <button onclick="copyText('fwdSeq')" class="text-indigo-600 text-xs font-bold">Copy</button>
+                </div>
+                <p id="fwdSeq" class="mono text-lg break-all font-bold text-slate-800 mb-3"></p>
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="bg-slate-50 p-2 rounded">
+                        <p class="text-[10px] text-slate-400 uppercase">Len</p>
+                        <p id="fwdLen" class="text-sm font-bold"></p>
                     </div>
-                    <p id="revSeq" class="font-mono text-xl break-all text-indigo-900 mb-4 tracking-widest"></p>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div class="bg-slate-50 p-3 rounded-lg">
-                            <p class="text-xs text-slate-500 uppercase">Length</p>
-                            <p id="revLen" class="font-bold text-slate-800"></p>
-                        </div>
-                        <div class="bg-slate-50 p-3 rounded-lg">
-                            <p class="text-xs text-slate-500 uppercase">GC %</p>
-                            <p id="revGC" class="font-bold text-slate-800"></p>
-                        </div>
-                        <div class="bg-slate-50 p-3 rounded-lg">
-                            <p class="text-xs text-slate-500 uppercase">Tm (°C)</p>
-                            <p id="revTm" class="font-bold text-slate-800"></p>
-                        </div>
+                    <div class="bg-slate-50 p-2 rounded">
+                        <p class="text-[10px] text-slate-400 uppercase">GC%</p>
+                        <p id="fwdGC" class="text-sm font-bold"></p>
+                    </div>
+                    <div class="bg-slate-50 p-2 rounded">
+                        <p class="text-[10px] text-slate-400 uppercase">Tm</p>
+                        <p id="fwdTm" class="text-sm font-bold"></p>
                     </div>
                 </div>
             </div>
 
-            <div class="flex gap-4">
-                <button onclick="downloadPDF()" class="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    Download PDF Report
-                </button>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 border-l-8 border-l-rose-500">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-black text-rose-600 uppercase">Reverse Primer</span>
+                    <button onclick="copyText('revSeq')" class="text-indigo-600 text-xs font-bold">Copy</button>
+                </div>
+                <p id="revSeq" class="mono text-lg break-all font-bold text-slate-800 mb-3"></p>
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="bg-slate-50 p-2 rounded">
+                        <p class="text-[10px] text-slate-400 uppercase">Len</p>
+                        <p id="revLen" class="text-sm font-bold"></p>
+                    </div>
+                    <div class="bg-slate-50 p-2 rounded">
+                        <p class="text-[10px] text-slate-400 uppercase">GC%</p>
+                        <p id="revGC" class="text-sm font-bold"></p>
+                    </div>
+                    <div class="bg-slate-50 p-2 rounded">
+                        <p class="text-[10px] text-slate-400 uppercase">Tm</p>
+                        <p id="revTm" class="text-sm font-bold"></p>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <div id="errorBox" class="hidden mt-4 p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm"></div>
+            <button onclick="downloadPDF()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download PDF Report
+            </button>
+        </div>
     </main>
 
     <script>
-        const dnaInput = document.getElementById('dnaInput');
-        const resultsArea = document.getElementById('resultsArea');
-        const errorBox = document.getElementById('errorBox');
+        let sequence = "";
+        let isListening = false;
+        let recognition = null;
+        let lastResult = null; // Store results for PDF
 
-        // Input Sanitization
-        dnaInput.addEventListener('input', (e) => {
-            const start = e.target.selectionStart;
-            const originalValue = e.target.value;
-            const cleanedValue = originalValue.toUpperCase().replace(/[^ATCG]/g, '');
-            e.target.value = cleanedValue;
-            
-            // Maintain cursor position roughly
-            const diff = originalValue.length - cleanedValue.length;
-            if (diff > 0) e.target.setSelectionRange(start - diff, start - diff);
-        });
+        // --- KEYBOARD INTERCEPTOR ---
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toUpperCase();
+            if (['A', 'T', 'C', 'G'].includes(key)) {
+                inputBase(key);
+            } else if (e.key === 'Backspace') {
+                deleteBase();
+            }
+            e.preventDefault(); // Block all other keys
+        }, true);
 
-        function clearInput() {
-            dnaInput.value = '';
-            resultsArea.classList.add('hidden');
-            errorBox.classList.add('hidden');
+        // --- CORE LOGIC ---
+        function inputBase(base) {
+            sequence += base;
+            updateDisplay();
+        }
+
+        function deleteBase() {
+            sequence = sequence.slice(0, -1);
+            updateDisplay();
+        }
+
+        function clearAll() {
+            sequence = "";
+            lastResult = null;
+            updateDisplay();
+            document.getElementById('resultsArea').classList.add('hidden');
+        }
+
+        function updateDisplay() {
+            const display = document.getElementById('sequenceDisplay');
+            display.innerText = sequence;
+            document.getElementById('baseCount').innerText = `${sequence.length} BP`;
+            display.scrollTop = display.scrollHeight;
         }
 
         function calculateStats(seq) {
@@ -147,127 +169,160 @@
             const c = (seq.match(/C/g) || []).length;
             const a = (seq.match(/A/g) || []).length;
             const t = (seq.match(/T/g) || []).length;
-            
             const gc = ((g + c) / len) * 100;
-            // Tm = 4(G + C) + 2(A + T)
             const tm = (4 * (g + c)) + (2 * (a + t));
-            
-            return { len, gc, tm };
+            return { seq, len, gc: gc.toFixed(1), tm };
         }
 
         function getReverseComplement(seq) {
-            const complement = { 'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C' };
-            return seq.split('').reverse().map(base => complement[base]).join('');
+            const comp = { 'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C' };
+            return seq.split('').reverse().map(b => comp[b]).join('');
         }
 
-        function findBestPrimer(sequence, isReverse = false) {
-            const targetSeq = isReverse ? getReverseComplement(sequence) : sequence;
-            
-            // Try lengths 18 to 24
+        function findPrimer(target, isReverse = false) {
+            const workingSeq = isReverse ? getReverseComplement(target) : target;
             for (let len = 20; len <= 24; len++) {
-                const subSeq = isReverse ? targetSeq.substring(0, len) : targetSeq.substring(0, len);
-                const stats = calculateStats(subSeq);
-                
-                if (stats.gc >= 40 && stats.gc <= 60 && stats.tm >= 50 && stats.tm <= 65) {
-                    return { seq: subSeq, ...stats };
-                }
+                const sub = workingSeq.substring(0, len);
+                const stats = calculateStats(sub);
+                if (stats.gc >= 40 && stats.gc <= 60 && stats.tm >= 50 && stats.tm <= 65) return stats;
             }
-            
-            // Fallback: return 20bp if no perfect match found
-            const fallback = isReverse ? targetSeq.substring(0, 20) : targetSeq.substring(0, 20);
-            return { seq: fallback, ...calculateStats(fallback), warning: true };
+            return calculateStats(workingSeq.substring(0, 20)); // Fallback
         }
 
         function generatePrimers() {
-            const seq = dnaInput.value.trim();
-            
-            if (seq.length < 50) {
-                showError("Sequence too short. Please provide at least 50 base pairs.");
+            if (sequence.length < 40) {
+                alert("Sequence too short (min 40bp)");
                 return;
             }
-
-            errorBox.classList.add('hidden');
+            const fwd = findPrimer(sequence.substring(0, 30));
+            const rev = findPrimer(sequence.substring(sequence.length - 30), true);
             
-            // Logic for Forward Primer (Start of sequence)
-            const fwd = findBestPrimer(seq, false);
-            
-            // Logic for Reverse Primer (End of sequence)
-            const endPart = seq.substring(seq.length - 30);
-            const rev = findBestPrimer(endPart, true);
+            lastResult = { fwd, rev, original: sequence };
 
             // Update UI
-            displayResult('fwd', fwd);
-            displayResult('rev', rev);
-            
-            resultsArea.classList.remove('hidden');
-            resultsArea.scrollIntoView({ behavior: 'smooth' });
+            updateUI('fwd', fwd);
+            updateUI('rev', rev);
+            document.getElementById('resultsArea').classList.remove('hidden');
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
-        function displayResult(prefix, data) {
+        function updateUI(prefix, data) {
             document.getElementById(`${prefix}Seq`).innerText = data.seq;
-            document.getElementById(`${prefix}Len`).innerText = `${data.len} bp`;
-            document.getElementById(`${prefix}GC`).innerText = `${data.gc.toFixed(1)}%`;
+            document.getElementById(`${prefix}Len`).innerText = `${data.len}bp`;
+            document.getElementById(`${prefix}GC`).innerText = `${data.gc}%`;
             document.getElementById(`${prefix}Tm`).innerText = `${data.tm}°C`;
         }
 
-        function showError(msg) {
-            errorBox.innerText = msg;
-            errorBox.classList.remove('hidden');
-            resultsArea.classList.add('hidden');
+        // --- VOICE ASSISTANT ---
+        function initSpeech() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return alert("Speech API not supported in this browser.");
+            
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
+                
+                // Commands
+                if (transcript.includes('generate') || transcript.includes('result')) {
+                    generatePrimers();
+                    return;
+                }
+                if (transcript.includes('download') || transcript.includes('pdf')) {
+                    downloadPDF();
+                    return;
+                }
+
+                // Dictation Mapping
+                const words = transcript.split(' ');
+                words.forEach(word => {
+                    if (['a', 'alpha', 'hay'].includes(word)) inputBase('A');
+                    else if (['t', 'tea', 'tee', 'tango'].includes(word)) inputBase('T');
+                    else if (['c', 'see', 'sea', 'charlie'].includes(word)) inputBase('C');
+                    else if (['g', 'gee', 'gui', 'golf'].includes(word)) inputBase('G');
+                });
+            };
+
+            recognition.onend = () => { if (isListening) recognition.start(); };
+        }
+
+        function toggleVoice() {
+            if (!recognition) initSpeech();
+            isListening = !isListening;
+            const btn = document.getElementById('micBtn');
+            const status = document.getElementById('voiceStatus');
+            
+            if (isListening) {
+                recognition.start();
+                btn.classList.replace('bg-slate-100', 'bg-red-50');
+                btn.classList.add('text-red-600', 'border-red-200');
+                status.classList.remove('hidden');
+            } else {
+                recognition.stop();
+                btn.classList.replace('bg-red-50', 'bg-slate-100');
+                btn.classList.remove('text-red-600', 'border-red-200');
+                status.classList.add('hidden');
+            }
+        }
+
+        // --- PDF ENGINE (RAW TEMPLATE STRING) ---
+        function downloadPDF() {
+            if (!lastResult) return;
+
+            const pdfTemplate = `
+                <div style="font-family: sans-serif; padding: 40px; color: #1e293b;">
+                    <h1 style="color: #4338ca; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">BioPrime Primer Report</h1>
+                    <p style="font-size: 12px; color: #64748b;">Generated: ${new Date().toLocaleString()}</p>
+                    
+                    <div style="margin-top: 30px;">
+                        <h3 style="text-transform: uppercase; font-size: 14px; color: #059669;">Forward Primer (5' to 3')</h3>
+                        <p style="font-family: monospace; font-size: 18px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">${lastResult.fwd.seq}</p>
+                        <table style="width: 100%; text-align: left; font-size: 14px;">
+                            <tr>
+                                <td><strong>Length:</strong> ${lastResult.fwd.len} bp</td>
+                                <td><strong>GC Content:</strong> ${lastResult.fwd.gc}%</td>
+                                <td><strong>Melting Temp:</strong> ${lastResult.fwd.tm}°C</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div style="margin-top: 40px;">
+                        <h3 style="text-transform: uppercase; font-size: 14px; color: #e11d48;">Reverse Primer (5' to 3')</h3>
+                        <p style="font-family: monospace; font-size: 18px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">${lastResult.rev.seq}</p>
+                        <table style="width: 100%; text-align: left; font-size: 14px;">
+                            <tr>
+                                <td><strong>Length:</strong> ${lastResult.rev.len} bp</td>
+                                <td><strong>GC Content:</strong> ${lastResult.rev.gc}%</td>
+                                <td><strong>Melting Temp:</strong> ${lastResult.rev.tm}°C</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div style="margin-top: 50px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+                        <h4 style="font-size: 12px; color: #64748b; text-transform: uppercase;">Original Template Sequence</h4>
+                        <p style="font-family: monospace; font-size: 10px; word-break: break-all; color: #94a3b8;">${lastResult.original}</p>
+                    </div>
+                </div>
+            `;
+
+            const opt = {
+                margin: 0,
+                filename: `Primer_Report_${Date.now()}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+
+            html2pdf().from(pdfTemplate).set(opt).save();
         }
 
         function copyText(id) {
             const text = document.getElementById(id).innerText;
-            navigator.clipboard.writeText(text).then(() => {
-                const btn = event.target;
-                const originalText = btn.innerText;
-                btn.innerText = 'Copied!';
-                btn.classList.add('text-emerald-600');
-                setTimeout(() => {
-                    btn.innerText = originalText;
-                    btn.classList.remove('text-emerald-600');
-                }, 2000);
-            });
-        }
-
-        function downloadPDF() {
-            // 1. Gather the data from the app
-            const fwdSeq = document.getElementById('fwdSeq').innerText;
-            const fwdLen = document.getElementById('fwdLen').innerText;
-            const fwdGC = document.getElementById('fwdGC').innerText;
-            const fwdTm = document.getElementById('fwdTm').innerText;
-            
-            const revSeq = document.getElementById('revSeq').innerText;
-            const revLen = document.getElementById('revLen').innerText;
-            const revGC = document.getElementById('revGC').innerText;
-            const revTm = document.getElementById('revTm').innerText;
-
-            // 2. Create a raw HTML string (bypassing the phone's screen completely)
-            const htmlString = `
-                <div style="font-family: Helvetica, Arial, sans-serif; padding: 40px; color: #333; background-color: #ffffff;">
-                    <h1 style="color: #4338ca; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-top: 0;">BioPrime Analysis Report</h1>
-                    <p style="color: #64748b; font-size: 12px; margin-bottom: 30px;">Generated on: ${new Date().toLocaleString()}</p>
-                    
-                    <h2 style="color: #059669; font-size: 18px;">FORWARD SENSE PRIMER</h2>
-                    <p style="font-family: monospace; font-size: 16px; background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; word-break: break-all;">${fwdSeq}</p>
-                    <p style="font-size: 14px; margin-bottom: 30px;"><strong>Length:</strong> ${fwdLen} &nbsp;|&nbsp; <strong>GC Content:</strong> ${fwdGC} &nbsp;|&nbsp; <strong>Tm:</strong> ${fwdTm}</p>
-
-                    <h2 style="color: #e11d48; font-size: 18px;">REVERSE ANTISENSE PRIMER</h2>
-                    <p style="font-family: monospace; font-size: 16px; background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; word-break: break-all;">${revSeq}</p>
-                    <p style="font-size: 14px;"><strong>Length:</strong> ${revLen} &nbsp;|&nbsp; <strong>GC Content:</strong> ${revGC} &nbsp;|&nbsp; <strong>Tm:</strong> ${revTm}</p>
-                </div>
-            `;
-
-            // 3. Generate the PDF directly from the string
-            const opt = {
-                margin:       0.5,
-                filename:     'PCR_Primer_Report.pdf',
-                image:        { type: 'jpeg', quality: 1 },
-                html2canvas:  { scale: 2 },
-                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-            };
-
-            html2pdf().set(opt).from(htmlString).save();
+            navigator.clipboard.writeText(text);
+            alert("Sequence copied to clipboard");
         }
     </script>
 </body>
